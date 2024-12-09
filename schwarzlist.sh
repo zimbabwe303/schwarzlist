@@ -5,8 +5,19 @@ vpn_list_url=https://raw.githubusercontent.com/josephrocca/is-vpn/main/$vpn_file
 ip_addr_file=ip_addresses.txt
 schwarzlist_file=ip_schwarzlist.txt
 
+optstr="?hi"
+while getopts $optstr o; do
+  case "$o" in
+    i) inv=1 ;;
+    \?) exit 255 ;;
+  esac
+done
+shift $(expr $OPTIND - 1)
+
 if [ $# -lt 1 ]; then
-  echo "Usage: schwarzlist.sh <wg_conf_dir> [vpn-or-datacenter-ipv4-ranges.txt]"
+  echo "Usage: schwarzlist.sh [options] <wg_conf_dir> [ipv4-ranges.txt]"
+  echo "Options:"
+  echo "  -i: display servers which are NOT in the list (inverse search)"
   exit
 fi
 
@@ -42,8 +53,13 @@ if [ $# -lt 2 ]; then
   fi
 fi
 
-echo "Servers found in the VPN database:"
-grepcidr -f "$vpn_file" "$ip_addr_file" | tee "$schwarzlist_file"
+if [ ! $inv ]; then
+  echo "Servers found in the VPN database:"
+  grepcidr -f "$vpn_file" "$ip_addr_file" | tee "$schwarzlist_file"
+else
+  echo "Servers NOT found in the VPN database:"
+  grepcidr -v -f "$vpn_file" "$ip_addr_file" | tee "$schwarzlist_file"
+fi
 
 echo "Saved as $schwarzlist_file"
 
